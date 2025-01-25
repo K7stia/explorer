@@ -391,6 +391,10 @@ function addCheckInHandlers() {
                 const lon = event.target.dataset.lon;
                 const location = `${parseFloat(lat).toFixed(5)},${parseFloat(lon).toFixed(5)}`;
                 try {
+                    if (typeof ethers === "undefined") {
+                        throw new Error("ethers.js is not loaded. Make sure it is included in your project.");
+                    }
+
                     if (!userWalletConnected) {
                         alert("Please connect your wallet first.");
                         return;
