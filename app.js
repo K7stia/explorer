@@ -1,5 +1,4 @@
-const jsContent = `
-const contractAddress = "0x93a20aaE3fc612E53617e20E4881E0fc66D925DE";
+const contractAddress = "YOUR_CONTRACT_ADDRESS";
 const contractABI = [
     // Contract ABI...
 ];
@@ -55,6 +54,3 @@ map.on('click', async function (e) {
         alert("Error: " + err.message);
     }
 });
-`;
-
-module.exports = { htmlContent, jsContent };
