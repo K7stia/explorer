@@ -260,11 +260,9 @@ if (typeof window.ethereum === "undefined") {
 
 async function fetchLeaderboard() {
     try {
-        // Перевіряємо доступність ethers.js
         if (typeof ethers === "undefined") {
-            throw new Error("ethers.js не завантажено. Перевірте підключення скрипта.");
+            throw new Error("ethers.js не завантажено.");
         }
-
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const contract = new ethers.Contract(contractAddress, contractABI, provider);
 
@@ -282,17 +280,15 @@ async function fetchLeaderboard() {
 fetchLeaderboard();
 
 map.on('click', async function (e) {
-    const location = `${e.latlng.lat},${e.latlng.lng}`;
-    if (typeof window.ethereum === "undefined") {
-        alert("MetaMask не встановлено.");
-        return;
-    }
-
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const signer = provider.getSigner();
-    const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
     try {
+        if (typeof ethers === "undefined") {
+            throw new Error("ethers.js не завантажено.");
+        }
+        const location = `${e.latlng.lat},${e.latlng.lng}`;
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
         const checkInData = await contract.getCheckIn(location);
         const now = Math.floor(Date.now() / 1000);
         const isExpired = checkInData.expiry < now;
