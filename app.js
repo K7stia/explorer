@@ -328,21 +328,20 @@ async function loadCitiesForViewport() {
     const east = bounds.getEast();
     const west = bounds.getWest();
 
-    const overpassUrl = "https://overpass-api.de/api/interpreter";
     const query = `
         [out:json][timeout:30];
-        node["place"="city"](${south},${west},${north},${east});
-        out body limit 15;
+        (
+          node["place"="city"](${south},${west},${north},${east});
+        );
+        out body;
+        >;
+        out skel qt;
     `;
 
+    const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+
     try {
-        const response = await fetch(overpassUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: new URLSearchParams({ data: query }),
-        });
+        const response = await fetch(overpassUrl);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -459,3 +458,4 @@ twitterButton.addEventListener("click", () => {
     mainContainer.style.display = "none";
     initializeMap();
 });
+
