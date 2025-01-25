@@ -250,6 +250,7 @@ const contractABI = [
 
 let userWalletConnected = false;
 let userTwitterConnected = false;
+const activeCheckIns = new Map(); // Для зберігання активних чекінів
 
 // Створення UI елементів
 const body = document.body;
@@ -313,6 +314,57 @@ function initializeMap() {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
+
+    map.on('click', onMapClick);
+}
+
+// Обробник кліків по карті
+async function onMapClick(e) {
+    const location = `${e.latlng.lat.toFixed(5)},${e.latlng.lng.toFixed(5)}`;
+
+    // Створення спливаючого вікна
+    const popup = L.popup()
+        .setLatLng(e.latlng)
+        .setContent(`<button id="checkInButton">Check-In</button>`)
+        .openOn(map);
+
+    document.getElementById("checkInButton").addEventListener("click", async () => {
+        if (!userWalletConnected) {
+            alert("Please connect your wallet first.");
+            return;
+        }
+
+        try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const signer = provider.getSigner();
+            const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+            const checkInData = await contract.getCheckIn(location);
+            const now = Math.floor(Date.now() / 1000);
+            const isExpired = checkInData.expiry < now;
+            const fee = isExpired ? ethers.utils.parseUnits("0.00001991", "ether") : checkInData.amount.mul(2);
+
+            const tx = await contract.checkIn(location, { value: fee });
+            await tx.wait();
+
+            alert("Check-in successful!");
+            activeCheckIns.set(location, Date.now() + 24 * 60 * 60 * 1000);
+            markLocationAsCheckedIn(e.latlng);
+        } catch (err) {
+            console.error("Error during check-in:", err);
+            alert("Error: " + err.message);
+        }
+    });
+}
+
+// Позначити локацію як чекіннуту
+function markLocationAsCheckedIn(latlng) {
+    L.circle(latlng, {
+        color: 'green',
+        fillColor: '#0f0',
+        fillOpacity: 0.5,
+        radius: 500
+    }).addTo(map);
 }
 
 // Логіка підключення гаманця
@@ -339,3 +391,4 @@ twitterButton.addEventListener("click", () => {
     mainContainer.style.display = "none";
     initializeMap();
 });
+
