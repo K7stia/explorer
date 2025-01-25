@@ -248,6 +248,9 @@ const contractABI = [
 	}
 ];
 
+const contractAddress = "0xF103c4cDfc25b706845Fc90f7Ee3c937d080F7ea"; // Адреса вашого контракту
+const contractABI = [ /* Вставте ваш ABI сюди */ ];
+
 let userWalletConnected = false;
 let userTwitterConnected = false;
 const activeCheckIns = new Map(); // Для зберігання активних чекінів
@@ -308,69 +311,57 @@ twitterButton.style.fontSize = "16px";
 twitterButton.style.cursor = "pointer";
 step2.appendChild(twitterButton);
 
+// Список найбільших міст України
+const staticCities = [
+    { name: "Kyiv", lat: 50.4501, lon: 30.5234 },
+    { name: "Kharkiv", lat: 49.9935, lon: 36.2304 },
+    { name: "Odessa", lat: 46.4825, lon: 30.7233 },
+    { name: "Dnipro", lat: 48.4647, lon: 35.0462 },
+    { name: "Lviv", lat: 49.8397, lon: 24.0297 },
+    { name: "Kryvyi Rih", lat: 47.9105, lon: 33.3918 },
+    { name: "Mykolaiv", lat: 46.9750, lon: 31.9946 },
+    { name: "Mariupol", lat: 47.0971, lon: 37.5434 },
+    { name: "Zaporizhzhia", lat: 47.8388, lon: 35.1396 },
+    { name: "Vinnytsia", lat: 49.2331, lon: 28.4682 },
+    { name: "Poltava", lat: 49.5883, lon: 34.5514 },
+    { name: "Chernihiv", lat: 51.4982, lon: 31.2893 },
+    { name: "Kherson", lat: 46.6354, lon: 32.6169 },
+    { name: "Cherkasy", lat: 49.4444, lon: 32.0598 },
+    { name: "Zhytomyr", lat: 50.2547, lon: 28.6578 },
+    { name: "Sumy", lat: 50.9077, lon: 34.7981 },
+    { name: "Rivne", lat: 50.6199, lon: 26.2516 },
+    { name: "Ivano-Frankivsk", lat: 48.9226, lon: 24.7097 },
+    { name: "Ternopil", lat: 49.5535, lon: 25.5892 },
+    { name: "Lutsk", lat: 50.7472, lon: 25.3254 },
+    { name: "Uzhhorod", lat: 48.6208, lon: 22.2879 },
+    { name: "Chernivtsi", lat: 48.2915, lon: 25.9352 }
+];
+
 // Ініціалізація карти
 let map;
 function initializeMap() {
-    map = L.map('map').setView([20, 0], 2); // Центр карти: весь світ
+    map = L.map('map').setView([48.3794, 31.1656], 6); // Центр карти: Україна
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    map.on('moveend', loadCitiesForViewport); // Завантаження міст при зміні виду карти
-    loadCitiesForViewport();
+    loadStaticCities();
 }
 
-// Завантаження міст для видимої області карти
-async function loadCitiesForViewport() {
-    const bounds = map.getBounds();
-    const north = bounds.getNorth();
-    const south = bounds.getSouth();
-    const east = bounds.getEast();
-    const west = bounds.getWest();
+// Завантаження статичного списку міст
+function loadStaticCities() {
+    clearOldMarkers(); // Очистка старих маркерів
 
-    const query = `
-        [out:json][timeout:30];
-        (
-          node["place"="city"](${south},${west},${north},${east});
+    staticCities.forEach((city) => {
+        const marker = L.marker([city.lat, city.lon]).addTo(map);
+        marker.bindPopup(
+            `<strong>${city.name}</strong><br>
+            <button class="check-in-btn" data-lat="${city.lat}" data-lon="${city.lon}">Check-In</button>`
         );
-        out body;
-        >;
-        out skel qt;
-    `;
+        loadedMarkers.push(marker);
+    });
 
-    const overpassUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-
-    try {
-        const response = await fetch(overpassUrl);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (!data.elements || data.elements.length === 0) {
-            console.warn("No cities found for current viewport.");
-            return;
-        }
-
-        clearOldMarkers(); // Очистка старих маркерів
-
-        data.elements.forEach((element) => {
-            if (element.lat && element.lon) {
-                const marker = L.marker([element.lat, element.lon]).addTo(map);
-                marker.bindPopup(
-                    `<strong>${element.tags.name || "Unnamed City"}</strong><br>
-                    <button class="check-in-btn" data-lat="${element.lat}" data-lon="${element.lon}">Check-In</button>`
-                );
-                loadedMarkers.push(marker);
-            }
-        });
-
-        addCheckInHandlers();
-    } catch (error) {
-        console.error("Error loading cities from Overpass:", error);
-    }
+    addCheckInHandlers();
 }
 
 // Очистка старих маркерів
@@ -458,4 +449,3 @@ twitterButton.addEventListener("click", () => {
     mainContainer.style.display = "none";
     initializeMap();
 });
-
