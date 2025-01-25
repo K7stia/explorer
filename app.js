@@ -248,60 +248,94 @@ const contractABI = [
 	}
 ];
 
-let map = L.map('map').setView([0, 0], 2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-}).addTo(map);
+let userWalletConnected = false;
+let userTwitterConnected = false;
 
-// Перевірка MetaMask
-if (typeof window.ethereum === "undefined") {
-    alert("MetaMask не встановлено. Будь ласка, встановіть MetaMask і перезавантажте сторінку.");
+// Створення UI елементів
+const body = document.body;
+body.style.margin = "0";
+body.style.padding = "0";
+body.style.fontFamily = "Arial, sans-serif";
+body.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+
+// Фон для карти
+const mapContainer = document.createElement("div");
+mapContainer.id = "map";
+mapContainer.style.position = "absolute";
+mapContainer.style.top = "0";
+mapContainer.style.left = "0";
+mapContainer.style.width = "100%";
+mapContainer.style.height = "100%";
+mapContainer.style.zIndex = "-1";
+document.body.appendChild(mapContainer);
+
+// Основний контейнер для авторизації
+const mainContainer = document.createElement("div");
+mainContainer.style.position = "absolute";
+mainContainer.style.top = "0";
+mainContainer.style.left = "0";
+mainContainer.style.width = "100%";
+mainContainer.style.height = "100%";
+mainContainer.style.display = "flex";
+mainContainer.style.flexDirection = "column";
+mainContainer.style.justifyContent = "center";
+mainContainer.style.alignItems = "center";
+mainContainer.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+document.body.appendChild(mainContainer);
+
+const step1 = document.createElement("div");
+step1.innerHTML = `<h2>Step 1: Connect your wallet</h2>`;
+mainContainer.appendChild(step1);
+
+const walletButton = document.createElement("button");
+walletButton.innerText = "Connect Wallet";
+walletButton.style.padding = "10px 20px";
+walletButton.style.fontSize = "16px";
+walletButton.style.cursor = "pointer";
+mainContainer.appendChild(walletButton);
+
+const step2 = document.createElement("div");
+step2.innerHTML = `<h2>Step 2: Connect your Twitter (X) account</h2>`;
+step2.style.display = "none";
+mainContainer.appendChild(step2);
+
+const twitterButton = document.createElement("button");
+twitterButton.innerText = "Connect Twitter";
+twitterButton.style.padding = "10px 20px";
+twitterButton.style.fontSize = "16px";
+twitterButton.style.cursor = "pointer";
+step2.appendChild(twitterButton);
+
+// Ініціалізація карти (буде відображена після авторизації)
+let map;
+function initializeMap() {
+    map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
 }
 
-async function fetchLeaderboard() {
+// Логіка підключення гаманця
+walletButton.addEventListener("click", async () => {
     try {
-        if (typeof ethers === "undefined") {
-            throw new Error("ethers.js не завантажено.");
+        if (typeof window.ethereum !== "undefined") {
+            await window.ethereum.request({ method: "eth_requestAccounts" });
+            userWalletConnected = true;
+            alert("Wallet connected successfully!");
+            step1.style.display = "none";
+            step2.style.display = "block";
+        } else {
+            alert("No wallet detected. Please install MetaMask or use WalletConnect.");
         }
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const contract = new ethers.Contract(contractAddress, contractABI, provider);
-
-        const [addresses, scores] = await contract.getLeaderboard();
-        const leaderboardDiv = document.getElementById('leaderboard');
-        leaderboardDiv.innerHTML = '<h4>Leaderboard</h4>';
-        for (let i = 0; i < addresses.length; i++) {
-            leaderboardDiv.innerHTML += `<p>${addresses[i]}: ${scores[i]} XP</p>`;
-        }
-    } catch (err) {
-        console.error("Error fetching leaderboard:", err);
+    } catch (error) {
+        console.error("Error connecting wallet:", error);
     }
-}
+});
 
-fetchLeaderboard();
-
-map.on('click', async function (e) {
-    try {
-        if (typeof ethers === "undefined") {
-            throw new Error("ethers.js не завантажено.");
-        }
-        const location = `${e.latlng.lat},${e.latlng.lng}`;
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        const contract = new ethers.Contract(contractAddress, contractABI, signer);
-
-        const checkInData = await contract.getCheckIn(location);
-        const now = Math.floor(Date.now() / 1000);
-        const isExpired = checkInData.expiry < now;
-        const fee = isExpired ? ethers.utils.parseUnits("0.00001991", "ether") : checkInData.amount.mul(2);
-
-        if (confirm(`Check-in fee for this location is ${ethers.utils.formatEther(fee)} ETH. Proceed?`)) {
-            const tx = await contract.checkIn(location, { value: fee });
-            await tx.wait();
-            alert("Check-in successful!");
-            fetchLeaderboard();
-        }
-    } catch (err) {
-        console.error("Error during check-in:", err);
-        alert("Error: " + err.message);
-    }
+// Логіка підключення Twitter
+twitterButton.addEventListener("click", () => {
+    userTwitterConnected = true; // Імітація підключення
+    alert("Twitter connected successfully!");
+    mainContainer.style.display = "none";
+    initializeMap();
 });
