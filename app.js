@@ -321,7 +321,7 @@ function initializeMap() {
 // Завантаження міст із GeoNames API
 async function loadCitiesFromGeoNames() {
     const geoNamesUrl = "http://api.geonames.org/citiesJSON";
-    const username = "your_username"; // Замініть на ваш GeoNames username
+    const username = "k7stia"; // Замініть на ваш GeoNames username
     const north = 90, south = -90, east = 180, west = -180;
 
     try {
