@@ -310,46 +310,51 @@ step2.appendChild(twitterButton);
 // Ініціалізація карти
 let map;
 function initializeMap() {
-    map = L.map('map').setView([20, 0], 2); // Центр карти: весь світ
+    map = L.map('map').setView([48.3794, 31.1656], 6); // Центр карти: Україна
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    loadCitiesFromGeoNames(); // Завантаження міст через GeoNames API
+    loadCitiesFromOverpass(); // Завантаження великих міст України
 }
 
-// Завантаження міст із GeoNames API
-async function loadCitiesFromGeoNames() {
-    const geoNamesUrl = "http://api.geonames.org/citiesJSON";
-    const username = "k7stia"; // Замініть на ваш GeoNames username
-    const north = 90, south = -90, east = 180, west = -180;
-
+// Завантаження великих міст України із Overpass API
+async function loadCitiesFromOverpass() {
+    const overpassUrl = "https://overpass-api.de/api/interpreter";
+    const query = `
+        [out:json][timeout:180];
+        area[name="Ukraine"]->.searchArea;
+        node["place"="city"]["population"](area.searchArea);
+        out body;
+    `;
     try {
-        const response = await fetch(
-            `${geoNamesUrl}?north=${north}&south=${south}&east=${east}&west=${west}&username=${username}`
-        );
+        const response = await fetch(overpassUrl, {
+            method: "POST",
+            body: query,
+        });
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-
-        if (!data.geonames || data.geonames.length === 0) {
-            throw new Error("No cities found. Check your API limits or query.");
+        if (!data.elements || data.elements.length === 0) {
+            throw new Error("No cities found. Check your query or Overpass API limits.");
         }
 
-        data.geonames.forEach((city) => {
-            const marker = L.marker([city.lat, city.lng]).addTo(map);
-            marker.bindPopup(
-                `<strong>${city.name}</strong><br>
-                <button class="check-in-btn" data-lat="${city.lat}" data-lon="${city.lng}">Check-In</button>`
-            );
+        data.elements.forEach((element) => {
+            if (element.lat && element.lon) {
+                const marker = L.marker([element.lat, element.lon]).addTo(map);
+                marker.bindPopup(
+                    `<strong>${element.tags.name}</strong><br>
+                    <button class="check-in-btn" data-lat="${element.lat}" data-lon="${element.lon}">Check-In</button>`
+                );
+            }
         });
 
         addCheckInHandlers();
     } catch (error) {
-        console.error("Error loading cities from GeoNames:", error);
+        console.error("Error loading cities:", error);
         alert(`Error loading cities: ${error.message}`);
     }
 }
@@ -427,4 +432,3 @@ twitterButton.addEventListener("click", () => {
     mainContainer.style.display = "none";
     initializeMap();
 });
-
