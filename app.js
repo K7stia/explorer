@@ -251,6 +251,7 @@ const contractABI = [
 let userWalletConnected = false;
 let userTwitterConnected = false;
 const activeCheckIns = new Map(); // Для зберігання активних чекінів
+let loadedMarkers = []; // Для зберігання вже завантажених маркерів
 
 // Створення UI елементів
 const body = document.body;
@@ -310,23 +311,32 @@ step2.appendChild(twitterButton);
 // Ініціалізація карти
 let map;
 function initializeMap() {
-    map = L.map('map').setView([48.3794, 31.1656], 6); // Центр карти: Україна
+    map = L.map('map').setView([20, 0], 2); // Центр карти: весь світ
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    loadCitiesFromOverpass(); // Завантаження великих міст України
+    map.on('moveend', loadCitiesForViewport); // Завантаження міст при зміні виду карти
+    loadCitiesForViewport();
 }
 
-// Завантаження великих міст України із Overpass API
-async function loadCitiesFromOverpass() {
+// Завантаження міст для видимої області карти
+async function loadCitiesForViewport() {
+    const bounds = map.getBounds();
+    const north = bounds.getNorth();
+    const south = bounds.getSouth();
+    const east = bounds.getEast();
+    const west = bounds.getWest();
+
     const overpassUrl = "https://overpass-api.de/api/interpreter";
     const query = `
-        [out:json][timeout:180];
-        area[name="Ukraine"]->.searchArea;
-        node["place"="city"]["population"](area.searchArea);
+        [out:json][timeout:30];
+        node["place"="city"](${south},${west},${north},${east});
         out body;
+        >;
+        out skel qt 15; // Обмеження до 15 міст
     `;
+
     try {
         const response = await fetch(overpassUrl, {
             method: "POST",
@@ -338,25 +348,37 @@ async function loadCitiesFromOverpass() {
         }
 
         const data = await response.json();
+
         if (!data.elements || data.elements.length === 0) {
-            throw new Error("No cities found. Check your query or Overpass API limits.");
+            console.warn("No cities found for current viewport.");
+            return;
         }
+
+        clearOldMarkers(); // Очистка старих маркерів
 
         data.elements.forEach((element) => {
             if (element.lat && element.lon) {
                 const marker = L.marker([element.lat, element.lon]).addTo(map);
                 marker.bindPopup(
-                    `<strong>${element.tags.name}</strong><br>
+                    `<strong>${element.tags.name || "Unnamed City"}</strong><br>
                     <button class="check-in-btn" data-lat="${element.lat}" data-lon="${element.lon}">Check-In</button>`
                 );
+                loadedMarkers.push(marker);
             }
         });
 
         addCheckInHandlers();
     } catch (error) {
-        console.error("Error loading cities:", error);
-        alert(`Error loading cities: ${error.message}`);
+        console.error("Error loading cities from Overpass:", error);
     }
+}
+
+// Очистка старих маркерів
+function clearOldMarkers() {
+    loadedMarkers.forEach((marker) => {
+        map.removeLayer(marker);
+    });
+    loadedMarkers = [];
 }
 
 // Додаємо обробник для кнопок Check-In
