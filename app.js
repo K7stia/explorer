@@ -248,9 +248,6 @@ const contractABI = [
 	}
 ];
 
-const contractAddress = "0xF103c4cDfc25b706845Fc90f7Ee3c937d080F7ea"; // Адреса вашого контракту
-const contractABI = [ /* Вставте ваш ABI сюди */ ];
-
 let userWalletConnected = false;
 let userTwitterConnected = false;
 const activeCheckIns = new Map(); // Для зберігання активних чекінів
