@@ -260,6 +260,11 @@ if (typeof window.ethereum === "undefined") {
 
 async function fetchLeaderboard() {
     try {
+        // Перевіряємо доступність ethers.js
+        if (typeof ethers === "undefined") {
+            throw new Error("ethers.js не завантажено. Перевірте підключення скрипта.");
+        }
+
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const contract = new ethers.Contract(contractAddress, contractABI, provider);
 
