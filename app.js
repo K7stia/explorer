@@ -310,20 +310,21 @@ step2.appendChild(twitterButton);
 // Ініціалізація карти
 let map;
 function initializeMap() {
-    map = L.map('map').setView([20, 0], 2); // Центр карти: вся планета
+    map = L.map('map').setView([48.3794, 31.1656], 6); // Центр карти: Україна
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    loadCitiesFromOverpass(); // Завантаження міст
+    loadCitiesFromOverpass(); // Завантаження великих міст України
 }
 
-// Завантаження міст із Overpass API для всієї планети
+// Завантаження великих міст України із Overpass API
 async function loadCitiesFromOverpass() {
     const overpassUrl = "https://overpass-api.de/api/interpreter";
     const query = `
-        [out:json];
-        node["place"="city"];
+        [out:json][timeout:180];
+        area[name="Ukraine"]->.searchArea;
+        node["place"="city"]["population"](area.searchArea);
         out body;
     `;
     try {
@@ -331,7 +332,15 @@ async function loadCitiesFromOverpass() {
             method: "POST",
             body: query,
         });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
+        if (!data.elements || data.elements.length === 0) {
+            throw new Error("No cities found. Check your query or Overpass API limits.");
+        }
 
         data.elements.forEach((element) => {
             if (element.lat && element.lon) {
@@ -346,6 +355,7 @@ async function loadCitiesFromOverpass() {
         addCheckInHandlers();
     } catch (error) {
         console.error("Error loading cities:", error);
+        alert(`Error loading cities: ${error.message}`);
     }
 }
 
