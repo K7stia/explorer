@@ -307,52 +307,83 @@ twitterButton.style.fontSize = "16px";
 twitterButton.style.cursor = "pointer";
 step2.appendChild(twitterButton);
 
-// Ініціалізація карти (буде відображена після авторизації)
+// Ініціалізація карти
 let map;
 function initializeMap() {
-    map = L.map('map').setView([0, 0], 2);
+    map = L.map('map').setView([20, 0], 2); // Центр карти: вся планета
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    map.on('click', onMapClick);
+    loadCitiesFromOverpass(); // Завантаження міст
 }
 
-// Обробник кліків по карті
-async function onMapClick(e) {
-    const location = `${e.latlng.lat.toFixed(5)},${e.latlng.lng.toFixed(5)}`;
+// Завантаження міст із Overpass API для всієї планети
+async function loadCitiesFromOverpass() {
+    const overpassUrl = "https://overpass-api.de/api/interpreter";
+    const query = `
+        [out:json];
+        node["place"="city"];
+        out body;
+    `;
+    try {
+        const response = await fetch(overpassUrl, {
+            method: "POST",
+            body: query,
+        });
+        const data = await response.json();
 
-    // Створення спливаючого вікна
-    const popup = L.popup()
-        .setLatLng(e.latlng)
-        .setContent(`<button id="checkInButton">Check-In</button>`)
-        .openOn(map);
+        data.elements.forEach((element) => {
+            if (element.lat && element.lon) {
+                const marker = L.marker([element.lat, element.lon]).addTo(map);
+                marker.bindPopup(
+                    `<strong>${element.tags.name}</strong><br>
+                    <button class="check-in-btn" data-lat="${element.lat}" data-lon="${element.lon}">Check-In</button>`
+                );
+            }
+        });
 
-    document.getElementById("checkInButton").addEventListener("click", async () => {
-        if (!userWalletConnected) {
-            alert("Please connect your wallet first.");
-            return;
-        }
+        addCheckInHandlers();
+    } catch (error) {
+        console.error("Error loading cities:", error);
+    }
+}
 
-        try {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const signer = provider.getSigner();
-            const contract = new ethers.Contract(contractAddress, contractABI, signer);
+// Додаємо обробник для кнопок Check-In
+function addCheckInHandlers() {
+    map.on('popupopen', function (e) {
+        const checkInButton = e.popup._contentNode.querySelector('.check-in-btn');
+        if (checkInButton) {
+            checkInButton.addEventListener('click', async (event) => {
+                const lat = event.target.dataset.lat;
+                const lon = event.target.dataset.lon;
+                const location = `${parseFloat(lat).toFixed(5)},${parseFloat(lon).toFixed(5)}`;
+                try {
+                    if (!userWalletConnected) {
+                        alert("Please connect your wallet first.");
+                        return;
+                    }
 
-            const checkInData = await contract.getCheckIn(location);
-            const now = Math.floor(Date.now() / 1000);
-            const isExpired = checkInData.expiry < now;
-            const fee = isExpired ? ethers.utils.parseUnits("0.00001991", "ether") : checkInData.amount.mul(2);
+                    const provider = new ethers.providers.Web3Provider(window.ethereum);
+                    const signer = provider.getSigner();
+                    const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
-            const tx = await contract.checkIn(location, { value: fee });
-            await tx.wait();
+                    const checkInData = await contract.getCheckIn(location);
+                    const now = Math.floor(Date.now() / 1000);
+                    const isExpired = checkInData.expiry < now;
+                    const fee = isExpired ? ethers.utils.parseUnits("0.00001991", "ether") : checkInData.amount.mul(2);
 
-            alert("Check-in successful!");
-            activeCheckIns.set(location, Date.now() + 24 * 60 * 60 * 1000);
-            markLocationAsCheckedIn(e.latlng);
-        } catch (err) {
-            console.error("Error during check-in:", err);
-            alert("Error: " + err.message);
+                    const tx = await contract.checkIn(location, { value: fee });
+                    await tx.wait();
+
+                    alert("Check-in successful!");
+                    activeCheckIns.set(location, Date.now() + 24 * 60 * 60 * 1000);
+                    markLocationAsCheckedIn({ lat: parseFloat(lat), lng: parseFloat(lon) });
+                } catch (err) {
+                    console.error("Error during check-in:", err);
+                    alert("Error: " + err.message);
+                }
+            });
         }
     });
 }
