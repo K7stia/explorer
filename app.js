@@ -1,5 +1,5 @@
 const jsContent = `
-const contractAddress = "YOUR_CONTRACT_ADDRESS";
+const contractAddress = "0x93a20aaE3fc612E53617e20E4881E0fc66D925DE";
 const contractABI = [
     // Contract ABI...
 ];
