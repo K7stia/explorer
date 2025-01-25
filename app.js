@@ -332,15 +332,16 @@ async function loadCitiesForViewport() {
     const query = `
         [out:json][timeout:30];
         node["place"="city"](${south},${west},${north},${east});
-        out body;
-        >;
-        out skel qt 15; // Обмеження до 15 міст
+        out body limit 15;
     `;
 
     try {
         const response = await fetch(overpassUrl, {
             method: "POST",
-            body: query,
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({ data: query }),
         });
 
         if (!response.ok) {
