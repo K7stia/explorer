@@ -249,6 +249,7 @@ const contractABI = [
 ];
 
 let userWalletConnected = false;
+
 const staticCities = [
     { name: "Kyiv", lat: 50.4501, lon: 30.5234 },
     { name: "Lviv", lat: 49.8397, lon: 24.0297 },
@@ -258,20 +259,28 @@ const staticCities = [
 ];
 
 document.getElementById("connect-wallet").addEventListener("click", async () => {
+    console.log("Connect Wallet button clicked");
     const statusElement = document.getElementById("status");
     const addressElement = document.getElementById("address");
 
     if (typeof window.ethereum === "undefined") {
+        console.error("MetaMask is not detected.");
         alert("MetaMask is not detected. Please install MetaMask to continue.");
         statusElement.textContent = "Status: MetaMask not detected";
         return;
     }
 
     try {
+        console.log("Requesting wallet connection...");
         await window.ethereum.request({ method: "eth_requestAccounts" });
+        console.log("Wallet connected!");
+
         const provider = new ethers.providers.Web3Provider(window.ethereum);
+        console.log("Provider initialized:", provider);
+
         const signer = provider.getSigner();
         const address = await signer.getAddress();
+        console.log("Wallet address:", address);
 
         userWalletConnected = true;
         statusElement.textContent = "Status: Wallet connected";
@@ -279,6 +288,7 @@ document.getElementById("connect-wallet").addEventListener("click", async () => 
 
         // Показати карту після підключення
         document.getElementById("connect-container").style.display = "none";
+        document.getElementById("map").style.display = "block";
         initializeMap();
     } catch (err) {
         console.error("Error connecting wallet:", err);
@@ -288,6 +298,7 @@ document.getElementById("connect-wallet").addEventListener("click", async () => 
 });
 
 function initializeMap() {
+    console.log("Initializing map...");
     const map = L.map('map').setView([48.3794, 31.1656], 6); // Центр: Україна
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -297,6 +308,7 @@ function initializeMap() {
 }
 
 function loadStaticCities(map) {
+    console.log("Loading static cities...");
     staticCities.forEach(city => {
         const marker = L.marker([city.lat, city.lon]).addTo(map);
         marker.bindPopup(`
@@ -320,11 +332,14 @@ async function handleCheckIn(lat, lon) {
     }
 
     try {
+        console.log("Handling check-in...");
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
         const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
         const location = `${lat.toFixed(5)},${lon.toFixed(5)}`;
+        console.log("Check-in location:", location);
+
         const checkInData = await contract.getCheckIn(location);
         const now = Math.floor(Date.now() / 1000);
         const isExpired = checkInData.expiry < now;
