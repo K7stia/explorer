@@ -340,10 +340,16 @@ async function handleCheckIn(lat, lon) {
         const location = `${lat.toFixed(5)},${lon.toFixed(5)}`;
         console.log("Check-in location:", location);
 
+        // Додано логування перед викликом контракту
+        console.log("Calling getCheckIn...");
         const checkInData = await contract.getCheckIn(location);
+        console.log("Check-in data:", checkInData);
+
         const now = Math.floor(Date.now() / 1000);
         const isExpired = checkInData.expiry < now;
         const fee = isExpired ? ethers.utils.parseUnits("0.00001991", "ether") : checkInData.amount.mul(2);
+
+        console.log("Fee calculated:", ethers.utils.formatEther(fee));
 
         const tx = await contract.checkIn(location, { value: fee });
         await tx.wait();
