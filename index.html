@@ -3,44 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Check-In Map</title>
-    <!-- Leaflet.js -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <!-- Ethers.js -->
-    <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
+    <title>Check-in Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <style>
-        #map {
-            height: 90vh;
-            width: 100%;
-        }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
         }
-        @media (max-width: 768px) {
-            #map {
-                height: 85vh;
-            }
-        }
-        #leaderboard {
-            position: fixed;
-            bottom: 0;
-            left: 0;
+        #map {
+            height: 100vh;
             width: 100%;
-            max-height: 15vh;
-            overflow-y: auto;
+        }
+        #connect-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
             background: rgba(255, 255, 255, 0.9);
-            border-top: 1px solid #ccc;
-            padding: 10px;
-            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 <body>
-    <div id="map"></div>
-    <div id="leaderboard"></div>
+    <div id="connect-container">
+        <h2>Connect Your Wallet</h2>
+        <button id="connect-wallet">Connect Wallet</button>
+        <p id="status">Status: Not connected</p>
+        <p id="address"></p>
+    </div>
+    <div id="map" style="display: none;"></div>
     <script src="app.js"></script>
 </body>
 </html>
